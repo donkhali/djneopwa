@@ -2,7 +2,7 @@
   "appTitle": "CARACAS CLUB BOOTH",
   "appSubtitle": "La cabina la controlas tú",
   "adminPanelTitle": "Consola de DJ Carlos",
-  "googleSheetWebAppUrl": "https://script.google.com/macros/s/AKfycbwYPcp0vvGCwzpeqQl0asbxoi0p8jI82cozk2FtsTiffz2COYQYypXIHSYR6AYELmfB3g/exec",
+  "googleSheetWebAppUrl": "https://script.google.com/macros/s/AKfycbxbCxwyrkU1psFXNJ44sHKQi5IkDmGa2lDiUw44qaou6mSeMlBnAmo25S5THf3Gj_oAUw/exec",
   "enablePagoMovil": true,
   "enableCash": true,
   "theme": {
