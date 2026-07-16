@@ -10,6 +10,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon-192.png">
     
+    <!-- Librerías Oficiales de Firebase cargadas por CDN en su versión compatible para un solo archivo HTML -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
     <style>
         :root {
             --bg-color: #0d0e15;
@@ -319,7 +324,6 @@
         .btn-mini-danger { background-color: var(--danger); }
         .btn-mini-success { background-color: var(--success); }
 
-        /* Loader de Sincronización */
         .loading-overlay {
             display: none;
             position: fixed;
@@ -354,7 +358,7 @@
 
     <header>
         <h1 id="brand-title">🎛— Cargando...</h1>
-        <p id="brand-subtitle">Cargando cabina virtual</p>
+        <p id="brand-subtitle">Conectando con la cabina...</p>
     </header>
 
     <div class="container">
@@ -444,18 +448,6 @@
                         </table>
                     </div>
                 </div>
-
-                <!-- Gestión de contraseña de la base de datos -->
-                <div class="card">
-                    <div class="card-title">🔑 Configuración de Seguridad</div>
-                    <div class="form-group">
-                        <label for="input-new-pass">Nueva Contraseña del Panel</label>
-                        <input type="password" id="input-new-pass" class="input-control" placeholder="Ej: nuevaclave99">
-                    </div>
-                    <button class="btn btn-primary" onclick="updateAdminPassword()" style="padding: 10px; font-size: 0.9rem;">
-                        Actualizar Contraseña en Google
-                    </button>
-                </div>
             </div>
         </section>
 
@@ -477,9 +469,10 @@
         </button>
     </nav>
 
+    <!-- Loader de Sincronización -->
     <div id="loading" class="loading-overlay">
         <div class="spinner"></div>
-        <p style="color: white; font-weight: bold; font-size: 1.1rem;">Sincronizando con Google Sheets...</p>
+        <p style="color: white; font-weight: bold; font-size: 1.1rem;">Conectando con la base de datos...</p>
     </div>
 
     <script>
@@ -487,6 +480,7 @@
         let selectedPaymentMethod = 'Efectivo';
         let isAdminLoggedIn = false;
         let localOrders = []; 
+        let db = null; 
 
         function toggleLoading(show) {
             document.getElementById('loading').style.display = show ? 'flex' : 'none';
@@ -499,10 +493,17 @@
                 if (!response.ok) throw new Error("Fallo al leer config.json");
                 BRAND_CONFIG = await response.json();
                 applyBrandSettings();
-                await syncWithGoogleSheets(); 
+                
+                // INICIALIZACIÓN DE FIREBASE
+                firebase.initializeApp(BRAND_CONFIG.firebaseConfig);
+                db = firebase.firestore();
+
+                // Conexión en tiempo real activa
+                initRealtimeSubscription();
+
             } catch (error) {
                 console.error(error);
-                alert("⚠️ Error de configuración. Verifica config.json y tu conexión de red.");
+                alert("⚠️ Error al inicializar la base de datos. Verifica tus credenciales en config.json.");
             } finally {
                 toggleLoading(false);
             }
@@ -536,97 +537,116 @@
         }
 
         // =========================================================================
-        //  API GOOGLE SHEETS (Sincronización Bidireccional)
+        //  FIREBASE REALTIME SUBSCRIPTION
         // =========================================================================
-        async function syncWithGoogleSheets() {
-            if (!BRAND_CONFIG.googleSheetWebAppUrl) return;
-            try {
-                const response = await fetch(BRAND_CONFIG.googleSheetWebAppUrl);
-                const data = await response.json();
-                localOrders = data.pedidos || [];
-                BRAND_CONFIG.adminPassword = data.adminPassword || BRAND_CONFIG.adminPassword;
-                
-                renderRanking();
-                renderAdminTable();
-            } catch (error) {
-                console.error("Error cargando Google Sheets:", error);
-            }
+        function initRealtimeSubscription() {
+            if (!db) return;
+            
+            db.collection("pedidos").orderBy("popularidad", "desc")
+              .onSnapshot((snapshot) => {
+                  localOrders = [];
+                  snapshot.forEach((doc) => {
+                      localOrders.push({
+                          id: doc.id,
+                          ...doc.data()
+                      });
+                  });
+                  renderRanking();
+                  renderAdminTable();
+              }, (error) => {
+                  console.error("Error en conexión en tiempo real:", error);
+              });
         }
 
-        // CORRECCIÓN CRÍTICA: Cambiado a empaquetamiento URL-Encoded para compatibilidad no-cors nativa
-        async function postToGoogleSheets(payload) {
+        async function saveOrder(artista, cancion, paymentMethod, reference) {
             toggleLoading(true);
             try {
-                const formBody = new URLSearchParams();
-                for (const key in payload) {
-                    formBody.append(key, payload[key]);
-                }
+                const artClean = artista.toLowerCase().trim();
+                const canClean = cancion ? cancion.toLowerCase().trim() : "ninguna";
 
-                await fetch(BRAND_CONFIG.googleSheetWebAppUrl, {
-                    method: 'POST',
-                    mode: 'no-cors', 
-                    body: formBody 
-                });
-                
-                // Tiempo prudencial de procesamiento del servidor remoto de Google
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                await syncWithGoogleSheets();
+                const existing = localOrders.find(o => 
+                    o.artista.toLowerCase().trim() === artClean && 
+                    o.cancion.toLowerCase().trim() === canClean
+                );
+
+                if (existing) {
+                    await db.collection("pedidos").doc(existing.id).update({
+                        popularidad: existing.popularidad + 1,
+                        payment_method: paymentMethod,
+                        reference: reference || "",
+                        hora: new Date().toTimeString().split(' ')[0]
+                    });
+                    alert("¡Voto registrado! Incrementando popularidad del tema 📈");
+                } else {
+                    await db.collection("pedidos").add({
+                        user_id: Math.floor(100000 + Math.random() * 900000).toString(),
+                        artista: artista.trim(),
+                        cancion: cancion ? cancion.trim() : "Ninguna",
+                        payment_method: paymentMethod,
+                        reference: reference || "",
+                        hora: new Date().toTimeString().split(' ')[0],
+                        popularidad: 1
+                    });
+                    alert("✅ ¡Tema enviado correctamente al DJ!");
+                }
             } catch (error) {
-                console.error("Error escribiendo en Google Sheets:", error);
-                alert("❌ Error al enviar datos a Google Sheets. Verifica tu conexión.");
+                console.error("Error guardando pedido:", error);
+                alert("❌ No se pudo conectar con Firebase.");
             } finally {
                 toggleLoading(false);
             }
         }
 
-        async function saveOrder(artista, cancion, paymentMethod, reference) {
-            const payload = {
-                action: "add",
-                user_id: Math.floor(100000 + Math.random() * 900000),
-                artista: artista.trim(),
-                cancion: cancion ? cancion.trim() : "Ninguna",
-                paymentMethod: paymentMethod,
-                reference: reference || '',
-                hora: new Date().toTimeString().split(' ')[0]
-            };
-            await postToGoogleSheets(payload);
-            alert("✅ Solicitud procesada y enviada a la cabina.");
-        }
-
         async function modifyPopularity(id, amount) {
-            await postToGoogleSheets({ action: "vote", id: id, amount: amount });
-            alert("Popularidad actualizada remota.");
+            const existing = localOrders.find(o => o.id === id);
+            if (!existing) return;
+            toggleLoading(true);
+            try {
+                await db.collection("pedidos").doc(id).update({
+                    popularidad: Math.max(1, existing.popularidad + amount)
+                });
+            } catch (error) {
+                console.error("Error modificando popularidad:", error);
+            } finally {
+                toggleLoading(false);
+            }
         }
 
         async function deleteOrder(id) {
-            if (confirm("¿Estás seguro de eliminar permanentemente esta solicitud de la nube?")) {
-                await postToGoogleSheets({ action: "delete", id: id });
-                alert("Registro borrado.");
+            if (confirm("¿Seguro de eliminar permanentemente esta solicitud de la nube?")) {
+                toggleLoading(true);
+                try {
+                    await db.collection("pedidos").doc(id).delete();
+                    alert("Solicitud eliminada.");
+                } catch (error) {
+                    console.error("Error eliminando documento:", error);
+                } finally {
+                    toggleLoading(false);
+                }
             }
         }
 
         async function confirmResetDb() {
-            if (confirm("⚠️ ¡PELIGRO! Esto borrará TODA la hoja de Google Sheets. ¿Continuar?")) {
-                await postToGoogleSheets({ action: "reset" });
-                alert("Base de datos limpia.");
-            }
-        }
-
-        async function updateAdminPassword() {
-            const newPass = document.getElementById('input-new-pass').value.trim();
-            if (!newPass) {
-                alert("❌ Por favor, ingresa una contraseña válida.");
-                return;
-            }
-            if (confirm(`¿Estás seguro de cambiar la clave de cabina a: "${newPass}"?`)) {
-                await postToGoogleSheets({ action: "updatePassword", newPassword: newPass });
-                alert("🔑 Contraseña actualizada con éxito en Google Sheets.");
-                document.getElementById('input-new-pass').value = '';
+            if (confirm("⚠️ ¡ADVERTENCIA! Esto borrará todas las canciones de la base de datos. ¿Continuar?")) {
+                toggleLoading(true);
+                try {
+                    const batch = db.batch();
+                    localOrders.forEach(o => {
+                        const ref = db.collection("pedidos").doc(o.id);
+                        batch.delete(ref);
+                    });
+                    await batch.commit();
+                    alert("Base de datos limpia.");
+                } catch (error) {
+                    console.error("Error al reiniciar la base de datos:", error);
+                } finally {
+                    toggleLoading(false);
+                }
             }
         }
 
         // =========================================================================
-        //  UI & LÓGICA INTERNA
+        //  UI & NAVEGACIÓN
         // =========================================================================
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(section => section.classList.remove('active'));
@@ -636,7 +656,7 @@
             document.getElementById(`btn-tab-${viewId}`).classList.add('active');
 
             if (viewId === 'ranking') {
-                syncWithGoogleSheets();
+                renderRanking();
             } else if (viewId === 'admin') {
                 checkSessionAuth();
             }
@@ -710,23 +730,31 @@
             }
         }
 
-        function checkAdminPassword() {
+        // CORRECCIÓN CRÍTICA DE AUTENTICACIÓN
+        async function checkAdminPassword() {
             const pass = document.getElementById('admin-pass').value;
-            if (pass === BRAND_CONFIG.adminPassword.toString()) {
+            toggleLoading(true);
+            try {
+                // Iniciar sesión segura contra el Auth de Firebase
+                await firebase.auth().signInWithEmailAndPassword("admin@vdjneoapp.com", pass);
+                
                 isAdminLoggedIn = true;
                 checkSessionAuth();
-                alert("🔓 Acceso de administrador concedido");
-            } else {
-                alert("❌ Contraseña incorrecta");
+                alert("🔓 Acceso de administrador concedido y sesión de red protegida.");
+            } catch (error) {
+                console.error("Fallo de autenticación:", error);
+                alert("❌ Contraseña incorrecta o error de red.");
+            } finally {
+                toggleLoading(false);
+                document.getElementById('admin-pass').value = '';
             }
-            document.getElementById('admin-pass').value = '';
         }
 
         function renderAdminTable() {
             const tableBody = document.getElementById('admin-table-body');
 
             if (localOrders.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hay solicitudes registradas</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 10px;">No hay solicitudes registradas</td></tr>`;
                 return;
             }
 
@@ -743,8 +771,8 @@
                     <td><strong>${order.popularidad}</strong></td>
                     <td>
                         <div class="admin-actions">
-                            <button class="btn-mini btn-mini-success" onclick="modifyPopularity(${order.id}, 1)">+</button>
-                            <button class="btn-mini btn-mini-danger" onclick="deleteOrder(${order.id})">🗑️</button>
+                            <button class="btn-mini btn-mini-success" onclick="modifyPopularity('${order.id}', 1)">+</button>
+                            <button class="btn-mini btn-mini-danger" onclick="deleteOrder('${order.id}')">🗑️</button>
                         </div>
                     </td>
                 </tr>

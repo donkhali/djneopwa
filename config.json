@@ -2,7 +2,7 @@
   "appTitle": "CARACAS CLUB BOOTH",
   "appSubtitle": "La cabina la controlas tú",
   "adminPanelTitle": "Consola de DJ Carlos",
-  "googleSheetWebAppUrl": "https://script.google.com/macros/s/AKfycbxbCxwyrkU1psFXNJ44sHKQi5IkDmGa2lDiUw44qaou6mSeMlBnAmo25S5THf3Gj_oAUw/exec",
+  "adminPassword": "djpassword1",
   "enablePagoMovil": true,
   "enableCash": true,
   "theme": {
@@ -11,5 +11,13 @@
     "neonPrimary": "#ff007f",
     "neonSecondary": "#00f0ff",
     "borderColor": "#201c30"
+  },
+  "firebaseConfig": {
+    "apiKey": "AIzaSyDyTRAHgedboqsNNAHsqNqiKigtRddDkKU",
+    "authDomain": "vdjneoapp.firebaseapp.com",
+    "projectId": "vdjneoapp",
+    "storageBucket": "vdjneoapp.firebasestorage.app",
+    "messagingSenderId": "331893379774",
+    "appId": "1:331893379774:web:905c77c78c614f0a9844ef"
   }
 }
