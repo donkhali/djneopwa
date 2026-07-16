@@ -445,7 +445,7 @@
                     </div>
                 </div>
 
-                <!-- Gestión de contraseña de la base de datos (Editable por el DJ) -->
+                <!-- Gestión de contraseña de la base de datos -->
                 <div class="card">
                     <div class="card-title">🔑 Configuración de Seguridad</div>
                     <div class="form-group">
@@ -477,7 +477,6 @@
         </button>
     </nav>
 
-    <!-- Pantalla de carga integrada -->
     <div id="loading" class="loading-overlay">
         <div class="spinner"></div>
         <p style="color: white; font-weight: bold; font-size: 1.1rem;">Sincronizando con Google Sheets...</p>
@@ -487,14 +486,12 @@
         let BRAND_CONFIG = {};
         let selectedPaymentMethod = 'Efectivo';
         let isAdminLoggedIn = false;
-        let localOrders = []; // Caché de datos locales de Google Sheets
+        let localOrders = []; 
 
-        // Mostrar / Ocultar indicador de carga en red
         function toggleLoading(show) {
             document.getElementById('loading').style.display = show ? 'flex' : 'none';
         }
 
-        // Carga secuencial de config.json externa y base de datos Google Sheets
         async function fetchConfig() {
             toggleLoading(true);
             try {
@@ -502,7 +499,7 @@
                 if (!response.ok) throw new Error("Fallo al leer config.json");
                 BRAND_CONFIG = await response.json();
                 applyBrandSettings();
-                await syncWithGoogleSheets(); // Traer los pedidos y la clave desde Google
+                await syncWithGoogleSheets(); 
             } catch (error) {
                 console.error(error);
                 alert("⚠️ Error de configuración. Verifica config.json y tu conexión de red.");
@@ -511,7 +508,6 @@
             }
         }
 
-        // Aplicar estilos visuales personalizados
         function applyBrandSettings() {
             document.title = BRAND_CONFIG.appTitle;
             document.getElementById('brand-title').innerText = "🎛️ " + BRAND_CONFIG.appTitle;
@@ -548,8 +544,6 @@
                 const response = await fetch(BRAND_CONFIG.googleSheetWebAppUrl);
                 const data = await response.json();
                 localOrders = data.pedidos || [];
-                
-                // Sobrescribir dinámicamente la contraseña del admin del config.json por la que el DJ edite en su Sheet
                 BRAND_CONFIG.adminPassword = data.adminPassword || BRAND_CONFIG.adminPassword;
                 
                 renderRanking();
@@ -559,29 +553,32 @@
             }
         }
 
-        // Helper para peticiones de escritura rápidas sin problemas de CORS preflight (Simple Requests)
+        // CORRECCIÓN CRÍTICA: Cambiado a empaquetamiento URL-Encoded para compatibilidad no-cors nativa
         async function postToGoogleSheets(payload) {
             toggleLoading(true);
             try {
-                const response = await fetch(BRAND_CONFIG.googleSheetWebAppUrl, {
+                const formBody = new URLSearchParams();
+                for (const key in payload) {
+                    formBody.append(key, payload[key]);
+                }
+
+                await fetch(BRAND_CONFIG.googleSheetWebAppUrl, {
                     method: 'POST',
-                    mode: 'no-cors', // Evita errores de cabeceras en navegadores móviles
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(payload)
+                    mode: 'no-cors', 
+                    body: formBody 
                 });
                 
-                // Espera prudente para que Google Sheets procese los cambios antes de refrescar la pantalla
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                // Tiempo prudencial de procesamiento del servidor remoto de Google
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 await syncWithGoogleSheets();
             } catch (error) {
                 console.error("Error escribiendo en Google Sheets:", error);
-                alert("❌ Error al enviar datos a Google Sheets. Verifica la señal de red.");
+                alert("❌ Error al enviar datos a Google Sheets. Verifica tu conexión.");
             } finally {
                 toggleLoading(false);
             }
         }
 
-        // Guardar pedidos directamente en la nube
         async function saveOrder(artista, cancion, paymentMethod, reference) {
             const payload = {
                 action: "add",
@@ -593,32 +590,28 @@
                 hora: new Date().toTimeString().split(' ')[0]
             };
             await postToGoogleSheets(payload);
-            alert("✅ Solicitud enviada a la cabina del DJ");
+            alert("✅ Solicitud procesada y enviada a la cabina.");
         }
 
-        // Sumar/Restar votos
         async function modifyPopularity(id, amount) {
             await postToGoogleSheets({ action: "vote", id: id, amount: amount });
-            alert("Popularidad actualizada");
+            alert("Popularidad actualizada remota.");
         }
 
-        // Eliminar elemento de forma remota
         async function deleteOrder(id) {
             if (confirm("¿Estás seguro de eliminar permanentemente esta solicitud de la nube?")) {
                 await postToGoogleSheets({ action: "delete", id: id });
-                alert("Registro borrado");
+                alert("Registro borrado.");
             }
         }
 
-        // Limpiar la base de datos de la hoja de cálculo
         async function confirmResetDb() {
             if (confirm("⚠️ ¡PELIGRO! Esto borrará TODA la hoja de Google Sheets. ¿Continuar?")) {
                 await postToGoogleSheets({ action: "reset" });
-                alert("Base de datos limpia");
+                alert("Base de datos limpia.");
             }
         }
 
-        // Cambiar contraseña en Google Sheets
         async function updateAdminPassword() {
             const newPass = document.getElementById('input-new-pass').value.trim();
             if (!newPass) {
@@ -627,15 +620,14 @@
             }
             if (confirm(`¿Estás seguro de cambiar la clave de cabina a: "${newPass}"?`)) {
                 await postToGoogleSheets({ action: "updatePassword", newPassword: newPass });
-                alert("🔑 Contraseña actualizada con éxito en Google Sheets");
+                alert("🔑 Contraseña actualizada con éxito en Google Sheets.");
                 document.getElementById('input-new-pass').value = '';
             }
         }
 
         // =========================================================================
-        //  UI & LOGICA DEL NAVEGADOR
+        //  UI & LÓGICA INTERNA
         // =========================================================================
-
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(section => section.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -720,7 +712,7 @@
 
         function checkAdminPassword() {
             const pass = document.getElementById('admin-pass').value;
-            if (pass === BRAND_CONFIG.adminPassword) {
+            if (pass === BRAND_CONFIG.adminPassword.toString()) {
                 isAdminLoggedIn = true;
                 checkSessionAuth();
                 alert("🔓 Acceso de administrador concedido");

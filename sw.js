@@ -2,7 +2,7 @@ const CACHE_NAME = 'dj-booth-cache-v2';
 const ASSETS = [
   'index.html',
   'manifest.json',
-  'config.json', // <-- Cacheamos el JSON de configuración para soporte offline completo
+  'config.json',
   'sw.js'
 ];
 
