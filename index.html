@@ -8,7 +8,7 @@
     <meta name="theme-color" id="meta-theme-color" content="#0d0e15">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link class="apple-touch-icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     
     <style>
         :root {
@@ -37,7 +37,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-bottom: 85px; /* Margen de seguridad optimizado para el pie de página */
+            padding-bottom: 85px; 
         }
 
         header {
@@ -70,6 +70,7 @@
             margin: 0 auto;
             padding: 15px;
             flex-grow: 1;
+            position: relative;
         }
 
         .view-section {
@@ -317,6 +318,36 @@
 
         .btn-mini-danger { background-color: var(--danger); }
         .btn-mini-success { background-color: var(--success); }
+
+        /* Loader de Sincronización */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(8, 7, 12, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--border);
+            border-top: 5px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -389,6 +420,7 @@
             </div>
 
             <div id="admin-panel" style="display: none;">
+                <!-- Gestión de canciones -->
                 <div class="card" style="padding: 15px 10px;">
                     <div class="card-title" style="justify-content: space-between; font-size: 1.1rem;">
                         <span id="admin-panel-title">⚙️ Consola del DJ</span>
@@ -412,6 +444,18 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Gestión de contraseña de la base de datos (Editable por el DJ) -->
+                <div class="card">
+                    <div class="card-title">🔑 Configuración de Seguridad</div>
+                    <div class="form-group">
+                        <label for="input-new-pass">Nueva Contraseña del Panel</label>
+                        <input type="password" id="input-new-pass" class="input-control" placeholder="Ej: nuevaclave99">
+                    </div>
+                    <button class="btn btn-primary" onclick="updateAdminPassword()" style="padding: 10px; font-size: 0.9rem;">
+                        Actualizar Contraseña en Google
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -433,37 +477,41 @@
         </button>
     </nav>
 
+    <!-- Pantalla de carga integrada -->
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p style="color: white; font-weight: bold; font-size: 1.1rem;">Sincronizando con Google Sheets...</p>
+    </div>
+
     <script>
         let BRAND_CONFIG = {};
         let selectedPaymentMethod = 'Efectivo';
         let isAdminLoggedIn = false;
+        let localOrders = []; // Caché de datos locales de Google Sheets
 
-        async function fetchConfig() {
-            try {
-                const response = await fetch('config.json');
-                if (!response.ok) throw new Error("No se pudo cargar config.json");
-                BRAND_CONFIG = await response.json();
-            } catch (error) {
-                console.warn("Fallo al leer config.json. Usando respaldo local.", error);
-                BRAND_CONFIG = {
-                    appTitle: "BOOTH DEFAULT",
-                    appSubtitle: "Interactúa con la cabina",
-                    adminPanelTitle: "Consola de DJ",
-                    adminPassword: "admin",
-                    enablePagoMovil: true,
-                    enableCash: true,
-                    theme: {
-                        backgroundColor: "#0d0e15",
-                        cardBg: "#161824",
-                        neonPrimary: "#8b5cf6",
-                        neonSecondary: "#06b6d4",
-                        borderColor: "#24273a"
-                    }
-                };
-            }
-            applyBrandSettings();
+        // Mostrar / Ocultar indicador de carga en red
+        function toggleLoading(show) {
+            document.getElementById('loading').style.display = show ? 'flex' : 'none';
         }
 
+        // Carga secuencial de config.json externa y base de datos Google Sheets
+        async function fetchConfig() {
+            toggleLoading(true);
+            try {
+                const response = await fetch('config.json');
+                if (!response.ok) throw new Error("Fallo al leer config.json");
+                BRAND_CONFIG = await response.json();
+                applyBrandSettings();
+                await syncWithGoogleSheets(); // Traer los pedidos y la clave desde Google
+            } catch (error) {
+                console.error(error);
+                alert("⚠️ Error de configuración. Verifica config.json y tu conexión de red.");
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        // Aplicar estilos visuales personalizados
         function applyBrandSettings() {
             document.title = BRAND_CONFIG.appTitle;
             document.getElementById('brand-title').innerText = "🎛️ " + BRAND_CONFIG.appTitle;
@@ -491,53 +539,102 @@
             }
         }
 
-        function initDatabase() {
-            if (!localStorage.getItem('pedidos')) {
-                const sampleOrders = [
-                    { id: 1, user_id: 101, artista: 'Soda Stereo', cancion: 'De Música Ligera', artista_clean: 'soda stereo', cancion_clean: 'de musica ligera', payment_method: 'Efectivo', reference: '', hora: '23:15:00', popularidad: 5 },
-                    { id: 2, user_id: 102, artista: 'Daft Punk', cancion: 'One More Time', artista_clean: 'daft punk', cancion_clean: 'one more time', payment_method: 'Pagomovil', reference: '9984', hora: '23:22:12', popularidad: 3 }
-                ];
-                localStorage.setItem('pedidos', JSON.stringify(sampleOrders));
+        // =========================================================================
+        //  API GOOGLE SHEETS (Sincronización Bidireccional)
+        // =========================================================================
+        async function syncWithGoogleSheets() {
+            if (!BRAND_CONFIG.googleSheetWebAppUrl) return;
+            try {
+                const response = await fetch(BRAND_CONFIG.googleSheetWebAppUrl);
+                const data = await response.json();
+                localOrders = data.pedidos || [];
+                
+                // Sobrescribir dinámicamente la contraseña del admin del config.json por la que el DJ edite en su Sheet
+                BRAND_CONFIG.adminPassword = data.adminPassword || BRAND_CONFIG.adminPassword;
+                
+                renderRanking();
+                renderAdminTable();
+            } catch (error) {
+                console.error("Error cargando Google Sheets:", error);
             }
         }
 
-        function getOrders() {
-            return JSON.parse(localStorage.getItem('pedidos')) || [];
-        }
-
-        function saveOrder(artista, cancion, paymentMethod, reference) {
-            let orders = getOrders();
-            const artClean = artista.toLowerCase().trim();
-            const canClean = cancion ? cancion.toLowerCase().trim() : 'ninguna';
-
-            let index = orders.findIndex(o => o.artista_clean === artClean && o.cancion_clean === canClean);
-
-            if (index !== -1) {
-                orders[index].popularidad += 1;
-                orders[index].hora = new Date().toTimeString().split(' ')[0];
-                orders[index].payment_method = paymentMethod;
-                orders[index].reference = reference || '';
-                showNotification("¡Voto registrado! Subiendo popularidad 📈");
-            } else {
-                const newOrder = {
-                    id: Date.now(),
-                    user_id: Math.floor(100000 + Math.random() * 900000),
-                    artista: artista.trim(),
-                    cancion: cancion ? cancion.trim() : 'Ninguna',
-                    artista_clean: artClean,
-                    cancion_clean: canClean,
-                    payment_method: paymentMethod,
-                    reference: reference || '',
-                    hora: new Date().toTimeString().split(' ')[0],
-                    popularidad: 1
-                };
-                orders.push(newOrder);
-                showNotification("✅ ¡Pedido enviado!");
+        // Helper para peticiones de escritura rápidas sin problemas de CORS preflight (Simple Requests)
+        async function postToGoogleSheets(payload) {
+            toggleLoading(true);
+            try {
+                const response = await fetch(BRAND_CONFIG.googleSheetWebAppUrl, {
+                    method: 'POST',
+                    mode: 'no-cors', // Evita errores de cabeceras en navegadores móviles
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+                
+                // Espera prudente para que Google Sheets procese los cambios antes de refrescar la pantalla
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                await syncWithGoogleSheets();
+            } catch (error) {
+                console.error("Error escribiendo en Google Sheets:", error);
+                alert("❌ Error al enviar datos a Google Sheets. Verifica la señal de red.");
+            } finally {
+                toggleLoading(false);
             }
-            localStorage.setItem('pedidos', JSON.stringify(orders));
-            renderRanking();
-            renderAdminTable();
         }
+
+        // Guardar pedidos directamente en la nube
+        async function saveOrder(artista, cancion, paymentMethod, reference) {
+            const payload = {
+                action: "add",
+                user_id: Math.floor(100000 + Math.random() * 900000),
+                artista: artista.trim(),
+                cancion: cancion ? cancion.trim() : "Ninguna",
+                paymentMethod: paymentMethod,
+                reference: reference || '',
+                hora: new Date().toTimeString().split(' ')[0]
+            };
+            await postToGoogleSheets(payload);
+            alert("✅ Solicitud enviada a la cabina del DJ");
+        }
+
+        // Sumar/Restar votos
+        async function modifyPopularity(id, amount) {
+            await postToGoogleSheets({ action: "vote", id: id, amount: amount });
+            alert("Popularidad actualizada");
+        }
+
+        // Eliminar elemento de forma remota
+        async function deleteOrder(id) {
+            if (confirm("¿Estás seguro de eliminar permanentemente esta solicitud de la nube?")) {
+                await postToGoogleSheets({ action: "delete", id: id });
+                alert("Registro borrado");
+            }
+        }
+
+        // Limpiar la base de datos de la hoja de cálculo
+        async function confirmResetDb() {
+            if (confirm("⚠️ ¡PELIGRO! Esto borrará TODA la hoja de Google Sheets. ¿Continuar?")) {
+                await postToGoogleSheets({ action: "reset" });
+                alert("Base de datos limpia");
+            }
+        }
+
+        // Cambiar contraseña en Google Sheets
+        async function updateAdminPassword() {
+            const newPass = document.getElementById('input-new-pass').value.trim();
+            if (!newPass) {
+                alert("❌ Por favor, ingresa una contraseña válida.");
+                return;
+            }
+            if (confirm(`¿Estás seguro de cambiar la clave de cabina a: "${newPass}"?`)) {
+                await postToGoogleSheets({ action: "updatePassword", newPassword: newPass });
+                alert("🔑 Contraseña actualizada con éxito en Google Sheets");
+                document.getElementById('input-new-pass').value = '';
+            }
+        }
+
+        // =========================================================================
+        //  UI & LOGICA DEL NAVEGADOR
+        // =========================================================================
 
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(section => section.classList.remove('active'));
@@ -547,7 +644,7 @@
             document.getElementById(`btn-tab-${viewId}`).classList.add('active');
 
             if (viewId === 'ranking') {
-                renderRanking();
+                syncWithGoogleSheets();
             } else if (viewId === 'admin') {
                 checkSessionAuth();
             }
@@ -570,12 +667,12 @@
             const reference = document.getElementById('input-referencia').value.trim();
 
             if (!artista) {
-                showNotification("❌ Por favor escribe el nombre del artista");
+                alert("❌ Por favor escribe el nombre del artista");
                 return;
             }
 
             if (selectedPaymentMethod === 'Pagomovil' && !reference) {
-                showNotification("❌ Por favor escribe el número de referencia");
+                alert("❌ Por favor escribe el número de referencia");
                 return;
             }
 
@@ -589,8 +686,7 @@
 
         function renderRanking() {
             const rankingContainer = document.getElementById('ranking-container');
-            const orders = getOrders();
-            const sorted = [...orders].sort((a, b) => b.popularidad - a.popularidad);
+            const sorted = [...localOrders].sort((a, b) => b.popularidad - a.popularidad);
 
             if (sorted.length === 0) {
                 rankingContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); padding: 20px;">No hay canciones en cola aún.</p>`;
@@ -627,23 +723,22 @@
             if (pass === BRAND_CONFIG.adminPassword) {
                 isAdminLoggedIn = true;
                 checkSessionAuth();
-                showNotification("🔓 Acceso concedido");
+                alert("🔓 Acceso de administrador concedido");
             } else {
-                showNotification("❌ Contraseña incorrecta");
+                alert("❌ Contraseña incorrecta");
             }
             document.getElementById('admin-pass').value = '';
         }
 
         function renderAdminTable() {
             const tableBody = document.getElementById('admin-table-body');
-            const orders = getOrders();
 
-            if (orders.length === 0) {
+            if (localOrders.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hay solicitudes registradas</td></tr>`;
                 return;
             }
 
-            tableBody.innerHTML = orders.map(order => `
+            tableBody.innerHTML = localOrders.map(order => `
                 <tr>
                     <td>
                         <strong style="color: var(--text-main);">${order.artista}</strong><br>
@@ -664,41 +759,6 @@
             `).join('');
         }
 
-        function modifyPopularity(id, amount) {
-            let orders = getOrders();
-            let item = orders.find(o => o.id === id);
-            if (item) {
-                item.popularidad = Math.max(1, item.popularidad + amount);
-                localStorage.setItem('pedidos', JSON.stringify(orders));
-                renderAdminTable();
-                showNotification("Voto sumado");
-            }
-        }
-
-        function deleteOrder(id) {
-            if (confirm("¿Seguro de eliminar esta canción?")) {
-                let orders = getOrders();
-                orders = orders.filter(o => o.id !== id);
-                localStorage.setItem('pedidos', JSON.stringify(orders));
-                renderAdminTable();
-                showNotification("Removido");
-            }
-        }
-
-        function confirmResetDb() {
-            if (confirm("⚠️ ¿Deseas borrar TODOS los temas de esta noche?")) {
-                localStorage.removeItem('pedidos');
-                initDatabase();
-                renderAdminTable();
-                showNotification("Base de datos limpia");
-            }
-        }
-
-        // Reemplazado por alertas nativas estándar del navegador: rápidas, ultraligeras y sin fallos de interfaz
-        function showNotification(message) {
-            alert(message);
-        }
-
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
@@ -709,8 +769,6 @@
 
         window.onload = async () => {
             await fetchConfig(); 
-            initDatabase();      
-            renderRanking();     
         };
     </script>
 </body>

@@ -1,8 +1,8 @@
 {
-  "appTitle": "CITY DAY TASCA",
+  "appTitle": "CARACAS CLUB BOOTH",
   "appSubtitle": "La cabina la controlas tú",
-  "adminPanelTitle": "Consola de VDJ NEO",
-  "adminPassword": "1234",
+  "adminPanelTitle": "Consola de DJ Carlos",
+  "googleSheetWebAppUrl": "https://script.google.com/macros/s/AKfycbwYPcp0vvGCwzpeqQl0asbxoi0p8jI82cozk2FtsTiffz2COYQYypXIHSYR6AYELmfB3g/exec",
   "enablePagoMovil": true,
   "enableCash": true,
   "theme": {
