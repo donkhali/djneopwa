@@ -3,29 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="meta-title">DJ Booth - Solicitud de Canciones</title>
+    <title id="meta-title">CARACAS CLUB BOOTH</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" id="meta-theme-color" content="#0d0e15">
+    <meta name="theme-color" id="meta-theme-color" content="#08070c">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon-192.png">
     
-    <!-- Librerías Oficiales de Firebase cargadas por CDN en su versión compatible para un solo archivo HTML -->
+    <!-- Librerías Oficiales de Firebase por CDN (Versión de Compatibilidad) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
     <style>
         :root {
-            --bg-color: #0d0e15;
-            --card-bg: #161824;
-            --accent-primary: #8b5cf6; 
-            --accent-secondary: #06b6d4; 
+            --bg-color: #08070c;
+            --card-bg: #111019;
+            --accent-primary: #ff007f; 
+            --accent-secondary: #00f0ff; 
             --text-main: #f3f4f6;
             --text-muted: #9ca3af;
             --success: #10b981;
             --danger: #ef4444;
-            --border: #24273a;
+            --border: #201c30;
         }
 
         * {
@@ -128,7 +128,7 @@
         .input-control {
             width: 100%;
             padding: 12px 16px;
-            background-color: #090a10;
+            background-color: #050408;
             border: 1.5px solid var(--border);
             border-radius: 10px;
             color: var(--text-main);
@@ -160,7 +160,7 @@
         .btn-primary {
             background: linear-gradient(90deg, var(--accent-primary), #a855f7);
             color: white;
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            box-shadow: 0 4px 15px rgba(255, 0, 127, 0.4);
         }
 
         .btn-primary:active {
@@ -176,7 +176,7 @@
 
         .pay-option-card {
             border: 1.5px solid var(--border);
-            background-color: #090a10;
+            background-color: #050408;
             border-radius: 10px;
             padding: 12px;
             text-align: center;
@@ -187,7 +187,7 @@
 
         .pay-option-card.selected {
             border-color: var(--accent-secondary);
-            background-color: rgba(6, 182, 212, 0.1);
+            background-color: rgba(0, 240, 255, 0.1);
             color: var(--accent-secondary);
         }
 
@@ -229,8 +229,8 @@
         }
 
         .popularity-badge {
-            background-color: rgba(139, 92, 246, 0.15);
-            color: #c084fc;
+            background-color: rgba(255, 0, 127, 0.15);
+            color: #ff60b5;
             padding: 4px 10px;
             border-radius: 20px;
             font-size: 0.8rem;
@@ -331,7 +331,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(8, 7, 12, 0.85);
+            background: rgba(8, 7, 12, 0.9);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -406,12 +406,12 @@
             <div class="card">
                 <div class="card-title">📈 Top Peticiones</div>
                 <ul class="ranking-list" id="ranking-container">
-                    <!-- Dinámico -->
+                    <!-- Contenido Dinámico -->
                 </ul>
             </div>
         </section>
 
-        <!-- SECCIÓN 3: CONTROL DE ADMIN (Para el DJ) -->
+        <!-- SECCIÓN 3: CONTROL DE ADMIN -->
         <section id="view-admin" class="view-section">
             <div id="admin-auth" class="admin-login">
                 <div class="card">
@@ -424,7 +424,6 @@
             </div>
 
             <div id="admin-panel" style="display: none;">
-                <!-- Gestión de canciones -->
                 <div class="card" style="padding: 15px 10px;">
                     <div class="card-title" style="justify-content: space-between; font-size: 1.1rem;">
                         <span id="admin-panel-title">⚙️ Consola del DJ</span>
@@ -443,7 +442,7 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-table-body">
-                                <!-- Dinámico -->
+                                <!-- Contenido Dinámico -->
                             </tbody>
                         </table>
                     </div>
@@ -469,10 +468,10 @@
         </button>
     </nav>
 
-    <!-- Loader de Sincronización -->
+    <!-- Pantalla de Carga -->
     <div id="loading" class="loading-overlay">
         <div class="spinner"></div>
-        <p style="color: white; font-weight: bold; font-size: 1.1rem;">Conectando con la base de datos...</p>
+        <p style="color: white; font-weight: bold; font-size: 1.1rem;">Sincronizando con Caracas Club Booth...</p>
     </div>
 
     <script>
@@ -489,29 +488,58 @@
         async function fetchConfig() {
             toggleLoading(true);
             try {
-                const response = await fetch('config.json');
-                if (!response.ok) throw new Error("Fallo al leer config.json");
-                BRAND_CONFIG = await response.json();
-                applyBrandSettings();
+                // CONFIGURACIÓN CENTRAL INCRUSTADA CON TUS CREDENCIALES FINALES DE GOOGLE
+                BRAND_CONFIG = {
+                  "appTitle": "CARACAS CLUB BOOTH",
+                  "appSubtitle": "La cabina la controlas tú",
+                  "adminPanelTitle": "Consola de DJ Carlos",
+                  "adminPassword": "djpassword1",
+                  "enablePagoMovil": true,
+                  "enableCash": true,
+                  "theme": {
+                    "backgroundColor": "#08070c",
+                    "cardBg": "#111019",
+                    "neonPrimary": "#ff007f",
+                    "neonSecondary": "#00f0ff",
+                    "borderColor": "#201c30"
+                  },
+                  "firebaseConfig": {
+                    "apiKey": "AIzaSyDyTRAHgedboqsNNAHsqNqiKigtRddDkKU",
+                    "authDomain": "vdjneoapp.firebaseapp.com",
+                    "projectId": "vdjneoapp",
+                    "storageBucket": "vdjneoapp.firebasestorage.app",
+                    "messagingSenderId": "331893379774",
+                    "appId": "1:331893379774:web:905c77c78c614f0a9844ef"
+                  }
+                };
                 
-                // CORRECCIÓN CRÍTICA: Intenta leer desde "firebaseConfig" o directamente del objeto raíz
-                const fConfig = BRAND_CONFIG.firebaseConfig || BRAND_CONFIG;
-                
-                // Verificación de seguridad básica antes de inicializar
-                if (!fConfig || !fConfig.apiKey) {
-                    throw new Error("No se encontraron credenciales válidas en el archivo config.json.");
+                // Intento secundario de leer config.json externo (si existe y no tiene problemas)
+                try {
+                    const response = await fetch('config.json');
+                    if (response.ok) {
+                        const customConfig = await response.json();
+                        if (customConfig.firebaseConfig || customConfig.apiKey) {
+                            BRAND_CONFIG = { ...BRAND_CONFIG, ...customConfig };
+                            console.log("Configuración externa acoplada exitosamente.");
+                        }
+                    }
+                } catch(e) {
+                    console.log("Iniciando con credenciales incrustadas base de forma segura.");
                 }
 
-                // INICIALIZACIÓN DE FIREBASE
+                applyBrandSettings();
+                const fConfig = BRAND_CONFIG.firebaseConfig || BRAND_CONFIG;
+
+                // INICIALIZACIÓN DIRECTA DE FIREBASE EN LA NUBE
                 firebase.initializeApp(fConfig);
                 db = firebase.firestore();
 
-                // Conexión en tiempo real activa
+                // Conexión activa en tiempo real de Firestore
                 initRealtimeSubscription();
 
             } catch (error) {
-                console.error("Error detallado de inicialización:", error);
-                alert("⚠️ Error al inicializar la base de datos. Verifica tus credenciales en config.json.");
+                console.error("Error crítico de inicio:", error);
+                alert("⚠️ Error al inicializar la base de datos.");
             } finally {
                 toggleLoading(false);
             }
@@ -544,9 +572,6 @@
             }
         }
 
-        // =========================================================================
-        //  FIREBASE REALTIME SUBSCRIPTION
-        // =========================================================================
         function initRealtimeSubscription() {
             if (!db) return;
             
@@ -562,7 +587,7 @@
                   renderRanking();
                   renderAdminTable();
               }, (error) => {
-                  console.error("Error en conexión en tiempo real:", error);
+                  console.error("Error en conexión activa de Firestore:", error);
               });
         }
 
@@ -584,7 +609,7 @@
                         reference: reference || "",
                         hora: new Date().toTimeString().split(' ')[0]
                     });
-                    alert("¡Voto registrado! Incrementando popularidad del tema 📈");
+                    alert("¡Este tema ya estaba pedido! Se le sumó +1 voto al ranking 📈");
                 } else {
                     await db.collection("pedidos").add({
                         user_id: Math.floor(100000 + Math.random() * 900000).toString(),
@@ -595,11 +620,11 @@
                         hora: new Date().toTimeString().split(' ')[0],
                         popularidad: 1
                     });
-                    alert("✅ ¡Tema enviado correctamente al DJ!");
+                    alert("✅ ¡Tema enviado de forma segura a la cabina del DJ!");
                 }
             } catch (error) {
                 console.error("Error guardando pedido:", error);
-                alert("❌ No se pudo conectar con Firebase.");
+                alert("❌ Fallo de red: No se pudo conectar con Firebase.");
             } finally {
                 toggleLoading(false);
             }
@@ -621,11 +646,10 @@
         }
 
         async function deleteOrder(id) {
-            if (confirm("¿Seguro de eliminar permanentemente esta solicitud de la nube?")) {
+            if (confirm("¿Estás seguro de eliminar permanentemente esta canción de la cola?")) {
                 toggleLoading(true);
                 try {
                     await db.collection("pedidos").doc(id).delete();
-                    alert("Solicitud eliminada.");
                 } catch (error) {
                     console.error("Error eliminando documento:", error);
                 } finally {
@@ -635,7 +659,7 @@
         }
 
         async function confirmResetDb() {
-            if (confirm("⚠️ ¡ADVERTENCIA! Esto borrará todas las canciones de la base de datos. ¿Continuar?")) {
+            if (confirm("⚠️ ¡ATVERTENCIA DE ADMINISTRADOR! Esto limpiará por completo la pantalla de votaciones. ¿Continuar?")) {
                 toggleLoading(true);
                 try {
                     const batch = db.batch();
@@ -644,18 +668,15 @@
                         batch.delete(ref);
                     });
                     await batch.commit();
-                    alert("Base de datos limpia.");
+                    alert("Cola de reproducción reiniciada.");
                 } catch (error) {
-                    console.error("Error al reiniciar la base de datos:", error);
+                    console.error("Error al reiniciar base de datos:", error);
                 } finally {
                     toggleLoading(false);
                 }
             }
         }
 
-        // =========================================================================
-        //  UI & NAVEGACIÓN
-        // =========================================================================
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(section => section.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -692,7 +713,7 @@
             }
 
             if (selectedPaymentMethod === 'Pagomovil' && !reference) {
-                alert("❌ Por favor escribe el número de referencia");
+                alert("❌ Por favor escribe la referencia del pago móvil");
                 return;
             }
 
@@ -709,7 +730,7 @@
             const sorted = [...localOrders].sort((a, b) => b.popularidad - a.popularidad);
 
             if (sorted.length === 0) {
-                rankingContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); padding: 20px;">No hay canciones en cola aún.</p>`;
+                rankingContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); padding: 20px;">No hay temas solicitados todavía.</p>`;
                 return;
             }
 
@@ -742,15 +763,15 @@
             const pass = document.getElementById('admin-pass').value;
             toggleLoading(true);
             try {
-                // Iniciar sesión segura contra el Auth de Firebase utilizando el admin registrado
+                // Validación contra los servidores de Firebase Auth usando la cuenta de administrador estándar
                 await firebase.auth().signInWithEmailAndPassword("admin@vdjneoapp.com", pass);
                 
                 isAdminLoggedIn = true;
                 checkSessionAuth();
-                alert("🔓 Acceso de administrador concedido y sesión de red protegida.");
+                alert("🔓 Consola de DJ verificada. Acceso concedido.");
             } catch (error) {
-                console.error("Fallo de autenticación:", error);
-                alert("❌ Contraseña incorrecta o error de red.");
+                console.error("Error al autenticar administrador:", error);
+                alert("❌ Contraseña de administrador inválida.");
             } finally {
                 toggleLoading(false);
                 document.getElementById('admin-pass').value = '';
@@ -761,7 +782,7 @@
             const tableBody = document.getElementById('admin-table-body');
 
             if (localOrders.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 10px;">No hay solicitudes registradas</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 10px;">No hay peticiones en cola</td></tr>`;
                 return;
             }
 
@@ -789,8 +810,8 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('SW Operativo'))
-                    .catch(err => console.warn('Fallo de SW', err));
+                    .then(reg => console.log('Service Worker en funcionamiento'))
+                    .catch(err => console.warn('Error al levantar SW', err));
             });
         }
 
