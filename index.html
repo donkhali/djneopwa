@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="meta-title">DJ Booth - Solicitud de Canciones</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" id="meta-theme-color" content="#0d0e15">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <style>
+        :root {
+            --bg-color: #0d0e15;
+            --card-bg: #161824;
+            --accent-primary: #8b5cf6; 
+            --accent-secondary: #06b6d4; 
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --success: #10b981;
+            --danger: #ef4444;
+            --border: #24273a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 70px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            padding: 20px 15px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 4px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 15px;
+            flex-grow: 1;
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .input-control {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: #090a10;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-control:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, var(--accent-primary), #a855f7);
+            color: white;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .pay-option-card {
+            border: 1.5px solid var(--border);
+            background-color: #090a10;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .pay-option-card.selected {
+            border-color: var(--accent-secondary);
+            background-color: rgba(6, 182, 212, 0.1);
+            color: var(--accent-secondary);
+        }
+
+        .ranking-list {
+            list-style: none;
+        }
+
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background-color: rgba(255,255,255,0.02);
+        }
+
+        .ranking-rank {
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: var(--accent-secondary);
+            width: 30px;
+        }
+
+        .ranking-details {
+            flex-grow: 1;
+            padding-left: 5px;
+        }
+
+        .song-title {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .song-artist {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .popularity-badge {
+            background-color: rgba(139, 92, 246, 0.15);
+            color: #c084fc;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            flex-grow: 1;
+            height: 100%;
+            gap: 4px;
+        }
+
+        .tab-btn.active {
+            color: var(--accent-primary);
+        }
+
+        .tab-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .admin-login {
+            text-align: center;
+            max-width: 320px;
+            margin: 40px auto;
+        }
+
+        .admin-grid {
+            overflow-x: auto;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .admin-table th, .admin-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .admin-table th {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-mini {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            border: none;
+            cursor: pointer;
+            color: white;
+        }
+
+        .btn-mini-danger { background-color: var(--danger); }
+        .btn-mini-success { background-color: var(--success); }
+
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: var(--accent-primary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            z-index: 1000;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="brand-title">🎛️ Cargando...</h1>
+        <p id="brand-subtitle">Cargando cabina virtual</p>
+    </header>
+
+    <div class="container">
+        
+        <!-- SECCIÓN 1: SOLICITUDES -->
+        <section id="view-solicitud" class="view-section active">
+            <div class="card">
+                <div class="card-title">🎤 Pide tu Canción</div>
+                
+                <div class="form-group">
+                    <label for="input-artista">Artista o Banda</label>
+                    <input type="text" id="input-artista" class="input-control" placeholder="Ej: Soda Stereo, Daft Punk...">
+                </div>
+
+                <div class="form-group">
+                    <label for="input-cancion">Nombre del Tema</label>
+                    <input type="text" id="input-cancion" class="input-control" placeholder="Ej: De Música Ligera">
+                </div>
+
+                <div class="form-group">
+                    <label>Método de Pago</label>
+                    <div class="payment-options">
+                        <div class="pay-option-card selected" id="opt-efectivo" onclick="selectPayment('Efectivo')">
+                            💵 Efectivo
+                        </div>
+                        <div class="pay-option-card" id="opt-pagomovil" onclick="selectPayment('Pagomovil')">
+                            📱 Pagomóvil
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" id="group-referencia" style="display: none;">
+                    <label for="input-referencia">Número de Referencia (Últimos 4-6 dígitos)</label>
+                    <input type="text" id="input-referencia" class="input-control" placeholder="Ej: 4829">
+                </div>
+
+                <button class="btn btn-primary" onclick="submitRequest()" style="margin-top: 10px;">
+                    ⚡ Enviar Pedido al DJ
+                </button>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 2: RANKING -->
+        <section id="view-ranking" class="view-section">
+            <div class="card">
+                <div class="card-title">📈 Top Peticiones</div>
+                <ul class="ranking-list" id="ranking-container">
+                    <!-- Dinámico -->
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 3: CONTROL DE ADMIN (Para el DJ) -->
+        <section id="view-admin" class="view-section">
+            <div id="admin-auth" class="admin-login">
+                <div class="card">
+                    <div class="card-title" style="justify-content: center;">🔒 Acceso Exclusivo</div>
+                    <div class="form-group">
+                        <input type="password" id="admin-pass" class="input-control" placeholder="Ingresa contraseña..." style="text-align: center;">
+                    </div>
+                    <button class="btn btn-primary" onclick="checkAdminPassword()">Entrar</button>
+                </div>
+            </div>
+
+            <div id="admin-panel" style="display: none;">
+                <div class="card" style="padding: 15px 10px;">
+                    <div class="card-title" style="justify-content: space-between; font-size: 1.1rem;">
+                        <span id="admin-panel-title">⚙️ Consola del DJ</span>
+                        <button class="btn-mini btn-mini-danger" onclick="confirmResetDb()">Reiniciar DB</button>
+                    </div>
+
+                    <div class="admin-grid">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Artista/Canción</th>
+                                    <th>Pago</th>
+                                    <th>Hora</th>
+                                    <th>Pop.</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-table-body">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Navegación Inferior -->
+    <nav class="tab-bar">
+        <button class="tab-btn active" id="btn-tab-solicitud" onclick="switchView('solicitud')">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5zm4 4h-2v-5h2v5zm0-7h-2V7h2v2z"/></svg>
+            Pedir Tema
+        </button>
+        <button class="tab-btn" id="btn-tab-ranking" onclick="switchView('ranking')">
+            <svg viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
+            Ranking
+        </button>
+        <button class="tab-btn" id="btn-tab-admin" onclick="switchView('admin')">
+            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+            DJ Panel
+        </button>
+    </nav>
+
+    <div id="toast" class="toast">¡Hecho!</div>
+
+    <script>
+        // Declaración global de la configuración
+        let BRAND_CONFIG = {};
+        let selectedPaymentMethod = 'Efectivo';
+        let isAdminLoggedIn = false;
+
+        // Cargar dinámicamente el JSON al arrancar
+        async function fetchConfig() {
+            try {
+                const response = await fetch('config.json');
+                if (!response.ok) throw new Error("No se pudo cargar config.json");
+                BRAND_CONFIG = await response.json();
+            } catch (error) {
+                console.warn("Fallo al leer config.json. Usando respaldo local.", error);
+                // Respaldo de seguridad por si el archivo no existe durante pruebas
+                BRAND_CONFIG = {
+                    appTitle: "BOOTH DEFAULT",
+                    appSubtitle: "Interactúa con la cabina",
+                    adminPanelTitle: "Consola de DJ",
+                    adminPassword: "admin",
+                    enablePagoMovil: true,
+                    enableCash: true,
+                    theme: {
+                        backgroundColor: "#0d0e15",
+                        cardBg: "#161824",
+                        neonPrimary: "#8b5cf6",
+                        neonSecondary: "#06b6d4",
+                        borderColor: "#24273a"
+                    }
+                };
+            }
+            applyBrandSettings();
+        }
+
+        // --- INYECCIÓN DINÁMICA ---
+        function applyBrandSettings() {
+            document.title = BRAND_CONFIG.appTitle;
+            document.getElementById('brand-title').innerText = "🎛️ " + BRAND_CONFIG.appTitle;
+            document.getElementById('brand-subtitle').innerText = BRAND_CONFIG.appSubtitle;
+            document.getElementById('admin-panel-title').innerText = BRAND_CONFIG.adminPanelTitle;
+            document.getElementById('meta-theme-color').setAttribute('content', BRAND_CONFIG.theme.backgroundColor);
+
+            const root = document.documentElement;
+            root.style.setProperty('--bg-color', BRAND_CONFIG.theme.backgroundColor);
+            root.style.setProperty('--card-bg', BRAND_CONFIG.theme.cardBg);
+            root.style.setProperty('--accent-primary', BRAND_CONFIG.theme.neonPrimary);
+            root.style.setProperty('--accent-secondary', BRAND_CONFIG.theme.neonSecondary);
+            root.style.setProperty('--border', BRAND_CONFIG.theme.borderColor);
+
+            const optEfectivo = document.getElementById('opt-efectivo');
+            const optPagomovil = document.getElementById('opt-pagomovil');
+
+            optEfectivo.style.display = BRAND_CONFIG.enableCash ? 'block' : 'none';
+            optPagomovil.style.display = BRAND_CONFIG.enablePagoMovil ? 'block' : 'none';
+
+            if (!BRAND_CONFIG.enableCash && BRAND_CONFIG.enablePagoMovil) {
+                selectPayment('Pagomovil');
+            } else {
+                selectPayment('Efectivo');
+            }
+        }
+
+        // --- BASE DE DATOS LOCAL ---
+        function initDatabase() {
+            if (!localStorage.getItem('pedidos')) {
+                const sampleOrders = [
+                    { id: 1, user_id: 101, artista: 'Soda Stereo', cancion: 'De Música Ligera', artista_clean: 'soda stereo', cancion_clean: 'de musica ligera', payment_method: 'Efectivo', reference: '', hora: '23:15:00', popularidad: 5 },
+                    { id: 2, user_id: 102, artista: 'Daft Punk', cancion: 'One More Time', artista_clean: 'daft punk', cancion_clean: 'one more time', payment_method: 'Pagomovil', reference: '9984', hora: '23:22:12', popularidad: 3 }
+                ];
+                localStorage.setItem('pedidos', JSON.stringify(sampleOrders));
+            }
+        }
+
+        function getOrders() {
+            return JSON.parse(localStorage.getItem('pedidos')) || [];
+        }
+
+        function saveOrder(artista, cancion, paymentMethod, reference) {
+            let orders = getOrders();
+            const artClean = artista.toLowerCase().trim();
+            const canClean = cancion ? cancion.toLowerCase().trim() : 'ninguna';
+
+            let index = orders.findIndex(o => o.artista_clean === artClean && o.cancion_clean === canClean);
+
+            if (index !== -1) {
+                orders[index].popularidad += 1;
+                orders[index].hora = new Date().toTimeString().split(' ')[0];
+                orders[index].payment_method = paymentMethod;
+                orders[index].reference = reference || '';
+                showToast("¡Voto registrado! Subiendo popularidad 📈");
+            } else {
+                const newOrder = {
+                    id: Date.now(),
+                    user_id: Math.floor(100000 + Math.random() * 900000),
+                    artista: artista.trim(),
+                    cancion: cancion ? cancion.trim() : 'Ninguna',
+                    artista_clean: artClean,
+                    cancion_clean: canClean,
+                    payment_method: paymentMethod,
+                    reference: reference || '',
+                    hora: new Date().toTimeString().split(' ')[0],
+                    popularidad: 1
+                };
+                orders.push(newOrder);
+                showToast("✅ ¡Pedido enviado!");
+            }
+            localStorage.setItem('pedidos', JSON.stringify(orders));
+            renderRanking();
+            renderAdminTable();
+        }
+
+        // --- SISTEMA DE NAVEGACIÓN ---
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(section => section.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            document.getElementById(`btn-tab-${viewId}`).classList.add('active');
+
+            if (viewId === 'ranking') {
+                renderRanking();
+            } else if (viewId === 'admin') {
+                checkSessionAuth();
+            }
+        }
+
+        function selectPayment(method) {
+            selectedPaymentMethod = method;
+            const optEfectivo = document.getElementById('opt-efectivo');
+            const optPagomovil = document.getElementById('opt-pagomovil');
+
+            optEfectivo.classList.toggle('selected', method === 'Efectivo');
+            optPagomovil.classList.toggle('selected', method === 'Pagomovil');
+            
+            document.getElementById('group-referencia').style.display = (method === 'Pagomovil') ? 'block' : 'none';
+        }
+
+        function submitRequest() {
+            const artista = document.getElementById('input-artista').value.trim();
+            const cancion = document.getElementById('input-cancion').value.trim();
+            const reference = document.getElementById('input-referencia').value.trim();
+
+            if (!artista) {
+                showToast("❌ Por favor escribe el nombre del artista");
+                return;
+            }
+
+            if (selectedPaymentMethod === 'Pagomovil' && !reference) {
+                showToast("❌ Por favor escribe el número de referencia");
+                return;
+            }
+
+            saveOrder(artista, cancion, selectedPaymentMethod, reference);
+
+            document.getElementById('input-artista').value = '';
+            document.getElementById('input-cancion').value = '';
+            document.getElementById('input-referencia').value = '';
+            selectPayment(BRAND_CONFIG.enableCash ? 'Efectivo' : 'Pagomovil');
+        }
+
+        function renderRanking() {
+            const rankingContainer = document.getElementById('ranking-container');
+            const orders = getOrders();
+            const sorted = [...orders].sort((a, b) => b.popularidad - a.popularidad);
+
+            if (sorted.length === 0) {
+                rankingContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted); padding: 20px;">No hay canciones en cola aún.</p>`;
+                return;
+            }
+
+            rankingContainer.innerHTML = sorted.map((item, index) => `
+                <li class="ranking-item">
+                    <div class="ranking-rank">#${index + 1}</div>
+                    <div class="ranking-details">
+                        <div class="song-title">${item.cancion}</div>
+                        <div class="song-artist">${item.artista}</div>
+                    </div>
+                    <div class="popularity-badge">
+                        🔥 ${item.popularidad}
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        // --- PANEL ADMIN ---
+        function checkSessionAuth() {
+            if (isAdminLoggedIn) {
+                document.getElementById('admin-auth').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                renderAdminTable();
+            } else {
+                document.getElementById('admin-auth').style.display = 'block';
+                document.getElementById('admin-panel').style.display = 'none';
+            }
+        }
+
+        function checkAdminPassword() {
+            const pass = document.getElementById('admin-pass').value;
+            if (pass === BRAND_CONFIG.adminPassword) {
+                isAdminLoggedIn = true;
+                checkSessionAuth();
+                showToast("🔓 Acceso concedido");
+            } else {
+                showToast("❌ Contraseña incorrecta");
+            }
+            document.getElementById('admin-pass').value = '';
+        }
+
+        function renderAdminTable() {
+            const tableBody = document.getElementById('admin-table-body');
+            const orders = getOrders();
+
+            if (orders.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hay solicitudes registradas</td></tr>`;
+                return;
+            }
+
+            tableBody.innerHTML = orders.map(order => `
+                <tr>
+                    <td>
+                        <strong style="color: var(--text-main);">${order.artista}</strong><br>
+                        <span style="color: var(--accent-secondary);">${order.cancion}</span>
+                    </td>
+                    <td>
+                        ${order.payment_method === 'Pagomovil' ? `📱 <span style="font-size:0.75rem;">Ref:${order.reference}</span>` : '💵 Efec'}
+                    </td>
+                    <td style="color: var(--text-muted); font-size:0.8rem;">${order.hora}</td>
+                    <td><strong>${order.popularidad}</strong></td>
+                    <td>
+                        <div class="admin-actions">
+                            <button class="btn-mini btn-mini-success" onclick="modifyPopularity(${order.id}, 1)">+</button>
+                            <button class="btn-mini btn-mini-danger" onclick="deleteOrder(${order.id})">🗑️</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function modifyPopularity(id, amount) {
+            let orders = getOrders();
+            let item = orders.find(o => o.id === id);
+            if (item) {
+                item.popularidad = Math.max(1, item.popularidad + amount);
+                localStorage.setItem('pedidos', JSON.stringify(orders));
+                renderAdminTable();
+                showToast("Voto sumado");
+            }
+        }
+
+        function deleteOrder(id) {
+            if (confirm("¿Seguro de eliminar esta canción?")) {
+                let orders = getOrders();
+                orders = orders.filter(o => o.id !== id);
+                localStorage.setItem('pedidos', JSON.stringify(orders));
+                renderAdminTable();
+                showToast("Removido");
+            }
+        }
+
+        function confirmResetDb() {
+            if (confirm("⚠️ ¿Deseas borrar TODOS los temas de esta noche?")) {
+                localStorage.removeItem('pedidos');
+                initDatabase();
+                renderAdminTable();
+                showToast("Base de datos limpia");
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW Operativo'))
+                    .catch(err => console.warn('Fallo de SW', err));
+            });
+        }
+
+        // Carga secuencial obligatoria
+        window.onload = async () => {
+            await fetchConfig(); // 1. Cargar JSON externo
+            initDatabase();      // 2. Inicializar DB local
+            renderRanking();     // 3. Renderizar la UI
+        };
+    </script>
+</body>
+</html>

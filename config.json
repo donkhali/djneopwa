@@ -1,0 +1,15 @@
+{
+  "appTitle": "CITY DAY TASCA",
+  "appSubtitle": "La cabina la controlas tú",
+  "adminPanelTitle": "Consola de VDJ NEO",
+  "adminPassword": "1234",
+  "enablePagoMovil": true,
+  "enableCash": true,
+  "theme": {
+    "backgroundColor": "#08070c",
+    "cardBg": "#111019",
+    "neonPrimary": "#ff007f",
+    "neonSecondary": "#00f0ff",
+    "borderColor": "#201c30"
+  }
+}
