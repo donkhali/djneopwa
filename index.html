@@ -488,7 +488,7 @@
         async function fetchConfig() {
             toggleLoading(true);
             try {
-                // CONFIGURACIÓN CENTRAL INCRUSTADA CON TUS CREDENCIALES FINALES DE GOOGLE
+                // CONFIGURACIÓN BASE INCRUSTADA (FAIL-SAFE)
                 BRAND_CONFIG = {
                   "appTitle": "CARACAS CLUB BOOTH",
                   "appSubtitle": "La cabina la controlas tú",
@@ -513,28 +513,32 @@
                   }
                 };
                 
-                // Intento secundario de leer config.json externo (si existe y no tiene problemas)
+                // CORRECCIÓN CRÍTICA: Añadimos un timestamp (?v=...) para destruir la caché del navegador
                 try {
-                    const response = await fetch('config.json');
+                    const response = await fetch('config.json?v=' + Date.now());
                     if (response.ok) {
                         const customConfig = await response.json();
-                        if (customConfig.firebaseConfig || customConfig.apiKey) {
-                            BRAND_CONFIG = { ...BRAND_CONFIG, ...customConfig };
-                            console.log("Configuración externa acoplada exitosamente.");
+                        
+                        // Fusionamos de forma inteligente todo lo que modifiques externamente
+                        BRAND_CONFIG = { ...BRAND_CONFIG, ...customConfig };
+                        
+                        // Protegemos el sub-objeto del tema visual para evitar que se pise incompleto
+                        if (customConfig.theme) {
+                            BRAND_CONFIG.theme = { ...BRAND_CONFIG.theme, ...customConfig.theme };
                         }
+                        console.log("Configuración externa acoplada al instante sin caché.");
                     }
                 } catch(e) {
-                    console.log("Iniciando con credenciales incrustadas base de forma segura.");
+                    console.log("Iniciando con credenciales base por defecto.");
                 }
 
                 applyBrandSettings();
                 const fConfig = BRAND_CONFIG.firebaseConfig || BRAND_CONFIG;
 
-                // INICIALIZACIÓN DIRECTA DE FIREBASE EN LA NUBE
+                // INICIALIZACIÓN DIRECTA DE FIREBASE INMUNE A CACHÉ
                 firebase.initializeApp(fConfig);
                 db = firebase.firestore();
 
-                // Conexión activa en tiempo real de Firestore
                 initRealtimeSubscription();
 
             } catch (error) {
@@ -651,7 +655,7 @@
                 try {
                     await db.collection("pedidos").doc(id).delete();
                 } catch (error) {
-                    console.error("Error eliminando documento:", error);
+                    console.error("Error", error);
                 } finally {
                     toggleLoading(false);
                 }
@@ -659,7 +663,7 @@
         }
 
         async function confirmResetDb() {
-            if (confirm("⚠️ ¡ATVERTENCIA DE ADMINISTRADOR! Esto limpiará por completo la pantalla de votaciones. ¿Continuar?")) {
+            if (confirm("⚠️ ¡ADVERTENCIA DE ADMINISTRADOR! Esto limpiará por completo la pantalla de votaciones. ¿Continuar?")) {
                 toggleLoading(true);
                 try {
                     const batch = db.batch();
@@ -670,7 +674,7 @@
                     await batch.commit();
                     alert("Cola de reproducción reiniciada.");
                 } catch (error) {
-                    console.error("Error al reiniciar base de datos:", error);
+                    console.error("Error", error);
                 } finally {
                     toggleLoading(false);
                 }
@@ -763,14 +767,14 @@
             const pass = document.getElementById('admin-pass').value;
             toggleLoading(true);
             try {
-                // Validación contra los servidores de Firebase Auth usando la cuenta de administrador estándar
+                // Validación de red contra Firebase Auth utilizando la cuenta segura de administrador
                 await firebase.auth().signInWithEmailAndPassword("admin@vdjneoapp.com", pass);
                 
                 isAdminLoggedIn = true;
                 checkSessionAuth();
                 alert("🔓 Consola de DJ verificada. Acceso concedido.");
             } catch (error) {
-                console.error("Error al autenticar administrador:", error);
+                console.error("Error al autenticar:", error);
                 alert("❌ Contraseña de administrador inválida.");
             } finally {
                 toggleLoading(false);
@@ -810,8 +814,8 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('Service Worker en funcionamiento'))
-                    .catch(err => console.warn('Error al levantar SW', err));
+                    .then(reg => console.log('Service Worker activo'))
+                    .catch(err => console.warn('Error en SW', err));
             });
         }
 
