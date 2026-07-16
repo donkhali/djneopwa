@@ -1,21 +1,22 @@
 {
-  "short_name": "DJBooth",
-  "name": "Live DJ Request Panel",
+  "name": "Caracas Club Booth",
+  "short_name": "DJ Booth",
+  "description": "Controla la cabina del DJ y pide tus canciones en tiempo real",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#08070c",
+  "theme_color": "#08070c",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "type": "image/png"
     },
     {
       "src": "icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "type": "image/png"
     }
-  ],
-  "start_url": "index.html",
-  "background_color": "#0d0e15",
-  "theme_color": "#0d0e15",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }
