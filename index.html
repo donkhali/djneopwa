@@ -494,15 +494,23 @@
                 BRAND_CONFIG = await response.json();
                 applyBrandSettings();
                 
+                // CORRECCIÓN CRÍTICA: Intenta leer desde "firebaseConfig" o directamente del objeto raíz
+                const fConfig = BRAND_CONFIG.firebaseConfig || BRAND_CONFIG;
+                
+                // Verificación de seguridad básica antes de inicializar
+                if (!fConfig || !fConfig.apiKey) {
+                    throw new Error("No se encontraron credenciales válidas en el archivo config.json.");
+                }
+
                 // INICIALIZACIÓN DE FIREBASE
-                firebase.initializeApp(BRAND_CONFIG.firebaseConfig);
+                firebase.initializeApp(fConfig);
                 db = firebase.firestore();
 
                 // Conexión en tiempo real activa
                 initRealtimeSubscription();
 
             } catch (error) {
-                console.error(error);
+                console.error("Error detallado de inicialización:", error);
                 alert("⚠️ Error al inicializar la base de datos. Verifica tus credenciales en config.json.");
             } finally {
                 toggleLoading(false);
@@ -730,12 +738,11 @@
             }
         }
 
-        // CORRECCIÓN CRÍTICA DE AUTENTICACIÓN
         async function checkAdminPassword() {
             const pass = document.getElementById('admin-pass').value;
             toggleLoading(true);
             try {
-                // Iniciar sesión segura contra el Auth de Firebase
+                // Iniciar sesión segura contra el Auth de Firebase utilizando el admin registrado
                 await firebase.auth().signInWithEmailAndPassword("admin@vdjneoapp.com", pass);
                 
                 isAdminLoggedIn = true;
