@@ -8,7 +8,7 @@
     <meta name="theme-color" id="meta-theme-color" content="#0d0e15">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="icon-192.png">
+    <link class="apple-touch-icon" href="icon-192.png">
     
     <style>
         :root {
@@ -37,7 +37,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding-bottom: 70px;
+            padding-bottom: 85px; /* Margen de seguridad optimizado para el pie de página */
         }
 
         header {
@@ -239,7 +239,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 60px;
+            height: 65px;
             background-color: var(--card-bg);
             border-top: 1px solid var(--border);
             display: flex;
@@ -317,34 +317,12 @@
 
         .btn-mini-danger { background-color: var(--danger); }
         .btn-mini-success { background-color: var(--success); }
-
-        .toast {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background-color: var(--accent-primary);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            z-index: 1000;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            text-align: center;
-            white-space: nowrap;
-        }
-
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-        }
     </style>
 </head>
 <body>
 
     <header>
-        <h1 id="brand-title">🎛️ Cargando...</h1>
+        <h1 id="brand-title">🎛— Cargando...</h1>
         <p id="brand-subtitle">Cargando cabina virtual</p>
     </header>
 
@@ -455,15 +433,11 @@
         </button>
     </nav>
 
-    <div id="toast" class="toast">¡Hecho!</div>
-
     <script>
-        // Declaración global de la configuración
         let BRAND_CONFIG = {};
         let selectedPaymentMethod = 'Efectivo';
         let isAdminLoggedIn = false;
 
-        // Cargar dinámicamente el JSON al arrancar
         async function fetchConfig() {
             try {
                 const response = await fetch('config.json');
@@ -471,7 +445,6 @@
                 BRAND_CONFIG = await response.json();
             } catch (error) {
                 console.warn("Fallo al leer config.json. Usando respaldo local.", error);
-                // Respaldo de seguridad por si el archivo no existe durante pruebas
                 BRAND_CONFIG = {
                     appTitle: "BOOTH DEFAULT",
                     appSubtitle: "Interactúa con la cabina",
@@ -491,7 +464,6 @@
             applyBrandSettings();
         }
 
-        // --- INYECCIÓN DINÁMICA ---
         function applyBrandSettings() {
             document.title = BRAND_CONFIG.appTitle;
             document.getElementById('brand-title').innerText = "🎛️ " + BRAND_CONFIG.appTitle;
@@ -519,7 +491,6 @@
             }
         }
 
-        // --- BASE DE DATOS LOCAL ---
         function initDatabase() {
             if (!localStorage.getItem('pedidos')) {
                 const sampleOrders = [
@@ -546,7 +517,7 @@
                 orders[index].hora = new Date().toTimeString().split(' ')[0];
                 orders[index].payment_method = paymentMethod;
                 orders[index].reference = reference || '';
-                showToast("¡Voto registrado! Subiendo popularidad 📈");
+                showNotification("¡Voto registrado! Subiendo popularidad 📈");
             } else {
                 const newOrder = {
                     id: Date.now(),
@@ -561,14 +532,13 @@
                     popularidad: 1
                 };
                 orders.push(newOrder);
-                showToast("✅ ¡Pedido enviado!");
+                showNotification("✅ ¡Pedido enviado!");
             }
             localStorage.setItem('pedidos', JSON.stringify(orders));
             renderRanking();
             renderAdminTable();
         }
 
-        // --- SISTEMA DE NAVEGACIÓN ---
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(section => section.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -600,12 +570,12 @@
             const reference = document.getElementById('input-referencia').value.trim();
 
             if (!artista) {
-                showToast("❌ Por favor escribe el nombre del artista");
+                showNotification("❌ Por favor escribe el nombre del artista");
                 return;
             }
 
             if (selectedPaymentMethod === 'Pagomovil' && !reference) {
-                showToast("❌ Por favor escribe el número de referencia");
+                showNotification("❌ Por favor escribe el número de referencia");
                 return;
             }
 
@@ -641,7 +611,6 @@
             `).join('');
         }
 
-        // --- PANEL ADMIN ---
         function checkSessionAuth() {
             if (isAdminLoggedIn) {
                 document.getElementById('admin-auth').style.display = 'none';
@@ -658,9 +627,9 @@
             if (pass === BRAND_CONFIG.adminPassword) {
                 isAdminLoggedIn = true;
                 checkSessionAuth();
-                showToast("🔓 Acceso concedido");
+                showNotification("🔓 Acceso concedido");
             } else {
-                showToast("❌ Contraseña incorrecta");
+                showNotification("❌ Contraseña incorrecta");
             }
             document.getElementById('admin-pass').value = '';
         }
@@ -702,7 +671,7 @@
                 item.popularidad = Math.max(1, item.popularidad + amount);
                 localStorage.setItem('pedidos', JSON.stringify(orders));
                 renderAdminTable();
-                showToast("Voto sumado");
+                showNotification("Voto sumado");
             }
         }
 
@@ -712,7 +681,7 @@
                 orders = orders.filter(o => o.id !== id);
                 localStorage.setItem('pedidos', JSON.stringify(orders));
                 renderAdminTable();
-                showToast("Removido");
+                showNotification("Removido");
             }
         }
 
@@ -721,15 +690,13 @@
                 localStorage.removeItem('pedidos');
                 initDatabase();
                 renderAdminTable();
-                showToast("Base de datos limpia");
+                showNotification("Base de datos limpia");
             }
         }
 
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2500);
+        // Reemplazado por alertas nativas estándar del navegador: rápidas, ultraligeras y sin fallos de interfaz
+        function showNotification(message) {
+            alert(message);
         }
 
         if ('serviceWorker' in navigator) {
@@ -740,11 +707,10 @@
             });
         }
 
-        // Carga secuencial obligatoria
         window.onload = async () => {
-            await fetchConfig(); // 1. Cargar JSON externo
-            initDatabase();      // 2. Inicializar DB local
-            renderRanking();     // 3. Renderizar la UI
+            await fetchConfig(); 
+            initDatabase();      
+            renderRanking();     
         };
     </script>
 </body>
